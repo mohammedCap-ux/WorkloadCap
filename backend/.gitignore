@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment secrets
+.env
+
+# Database
+*.db
+
+# Debug scripts (scratchpads, pas a commiter)
+check_*.py
+count_*.py
+schema_*.py
+
+# Fichier source du seed (temporaire)
+code.txt
