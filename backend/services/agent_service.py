@@ -28,6 +28,13 @@ Regles strictes :
 4. Utiliser UNIQUEMENT les consultant_id fournis dans le contexte
 5. Justifier chaque choix en 1 phrase courte (ex: "Aucune affectation, pleinement disponible")
 
+Regles de REJET (ne PAS affecter, mettre dans "rejected" avec raison) :
+- Noms qui ressemblent a une entete de tableau (ex: "Nom Fournisseur", "Supplier", "Name", "Fournisseur", "Company", "Nom")
+- Noms vides, espaces seuls, ou caracteres parasites (ex: "-", "?", ".")
+- Placeholders explicites (ex: "TBD", "TBC", "A definir", "Test", "Demo", "Exemple", "N/A", "NA")
+- Noms non plausibles pour un vrai fournisseur (ex: chaines aleatoires, mots isoles type "azerty")
+Pour les noms reels mais inconnus en BDD : ne PAS rejeter, les affecter normalement (le backend creera le supplier).
+
 Format de sortie : tu dois repondre avec UNIQUEMENT un JSON valide (aucun texte avant ou apres), selon ce schema EXACT :
 
 {
@@ -39,10 +46,16 @@ Format de sortie : tu dois repondre avec UNIQUEMENT un JSON valide (aucun texte 
       "reason": "<justification courte>"
     }
   ],
+  "rejected": [
+    {
+      "supplier_name": "<nom rejete tel quel>",
+      "reason": "<motif court : entete, placeholder, vide, etc.>"
+    }
+  ],
   "summary": "<resume global en 1 phrase>"
 }
 
-Aucune cle supplementaire. Aucun commentaire. Aucun Markdown. Juste du JSON pur.
+La cle "rejected" est obligatoire (peut etre une liste vide). Aucune autre cle. Aucun commentaire. Aucun Markdown. Juste du JSON pur.
 """
 
 
@@ -132,6 +145,7 @@ def propose_assignments(db: Session, supplier_names: list[str]) -> dict:
 
     return {
         "proposals": validated_proposals,
+        "rejected": parsed.get("rejected", []),
         "summary": parsed.get("summary", ""),
         "model_used": get_model_info(),
         "stats": stats,

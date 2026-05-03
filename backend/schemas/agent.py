@@ -30,6 +30,12 @@ class ConfirmRequest(BaseModel):
 #   OUTPUT
 # ============================================================
 
+class RejectedItem(BaseModel):
+    """Un nom rejete par l'IA (entete, placeholder, etc.)."""
+    supplier_name: str
+    reason: str
+
+
 class Proposal(BaseModel):
     """Une proposition d'affectation par l'IA."""
     supplier_name: str
@@ -41,6 +47,7 @@ class Proposal(BaseModel):
 class ProposeResponse(BaseModel):
     """Reponse de POST /api/agent/propose-assignments"""
     proposals: list[Proposal]
+    rejected: list[RejectedItem] = []
     summary: str
     model_used: str
     stats: dict = {}
