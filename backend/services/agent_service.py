@@ -145,7 +145,7 @@ def confirm_assignments(db: Session, proposals: list[dict]) -> dict:
     """
     from models import Assignment
 
-    created = 0
+    created_assignments: list[dict] = []
     errors = []
 
     for p in proposals:
@@ -183,7 +183,16 @@ def confirm_assignments(db: Session, proposals: list[dict]) -> dict:
             assigned_by="ai",
         )
         db.add(assignment)
-        created += 1
+        db.flush()  # genere l'id sans committer
+        created_assignments.append({
+            "id": assignment.id,
+            "consultant_id": assignment.consultant_id,
+            "consultant_name": consultant.user.name if consultant.user else "",
+            "supplier_id": assignment.supplier_id,
+            "supplier_name": supplier.name,
+            "assigned_by": assignment.assigned_by,
+            "assigned_at": assignment.assigned_at,
+        })
 
     db.commit()
-    return {"created": created, "errors": errors}
+    return {"created_assignments": created_assignments, "errors": errors}

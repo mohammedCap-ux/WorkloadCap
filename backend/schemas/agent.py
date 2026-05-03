@@ -5,6 +5,7 @@ Modeles Pydantic pour les endpoints de l'agent IA.
 """
 
 from pydantic import BaseModel, Field
+from schemas.assignment import AssignmentDetail
 
 
 # ============================================================
@@ -47,5 +48,5 @@ class ProposeResponse(BaseModel):
 
 class ConfirmResponse(BaseModel):
     """Reponse de POST /api/agent/confirm-assignments"""
-    created: int
+    created_assignments: list[AssignmentDetail]
     errors: list[str] = []
