@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 import os
 
-load_dotenv()  # doit être AVANT les imports qui lisent l'env
+load_dotenv()  # doit Ãªtre AVANT les imports qui lisent l'env
 
 from database import engine, Base, get_db
 import models
@@ -16,6 +16,7 @@ from routes import suppliers as suppliers_routes
 from routes import assignments as assignments_routes
 from routes import categories as categories_routes
 from routes import declarations as declarations_routes
+from routes import agent as agent_routes
 
 
 Base.metadata.create_all(bind=engine)
@@ -26,7 +27,7 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# CORS : autoriser ton front React (localhost:3000 par défaut) à appeler l'API
+# CORS : autoriser ton front React (localhost:3000 par dÃ©faut) Ã  appeler l'API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -44,6 +45,7 @@ app.include_router(suppliers_routes.router)
 app.include_router(assignments_routes.router)
 app.include_router(categories_routes.router)
 app.include_router(declarations_routes.router)
+app.include_router(agent_routes.router)
 
 
 @app.get("/health")
