@@ -17,6 +17,7 @@ from routes import assignments as assignments_routes
 from routes import categories as categories_routes
 from routes import declarations as declarations_routes
 from routes import agent as agent_routes
+from routes import geo as geo_routes
 
 
 Base.metadata.create_all(bind=engine)
@@ -46,6 +47,7 @@ app.include_router(assignments_routes.router)
 app.include_router(categories_routes.router)
 app.include_router(declarations_routes.router)
 app.include_router(agent_routes.router)
+app.include_router(geo_routes.router)
 
 
 @app.get("/health")
