@@ -15,8 +15,9 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User
-from schemas.geo import ClosestDocksRequest, ClosestDocksResponse
+from schemas.geo import ClosestDocksRequest, ClosestDocksResponse, GeoDataResponse
 from services.deps import get_current_user
+from repositories import geo_repository
 from services.geo_service import find_closest_docks
 from services.llm_service import chat_completion, get_model_info
 
@@ -144,3 +145,14 @@ Genere les justifications pour chaque dock. Retourne UNIQUEMENT le JSON demande.
         "summary": parsed.get("summary", ""),
         "model_used": get_model_info(),
     }
+
+@router.get("/data", response_model=GeoDataResponse)
+def get_geo_data(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Retourne toutes les donnees stables : suppliers, docks, availability.
+    # Charge en BDD via le script seed_geo.py.
+    if current_user.role not in ("consultant", "manager", "people_manager"):
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    return geo_repository.get_all_data(db)
