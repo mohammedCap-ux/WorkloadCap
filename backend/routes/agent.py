@@ -17,9 +17,11 @@ from models import User
 from schemas.agent import (
     ProposeRequest, ProposeResponse,
     ConfirmRequest, ConfirmResponse,
+    RecommendDocksRequest, RecommendDocksResponse,
 )
 from services.deps import get_current_user
 from services.agent_service import propose_assignments, confirm_assignments
+from services.agent_geo_service import recommend_docks as recommend_docks_service
 
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -70,4 +72,42 @@ def confirm(
     _require_manager_or_pm(current_user)
 
     result = confirm_assignments(db, payload.proposals)
+    return result
+
+@router.post("/recommend-docks", response_model=RecommendDocksResponse)
+def recommend_docks_endpoint(
+    payload: RecommendDocksRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Recommande les docks ou prendre un packaging selon le besoin.
+    # Accessible aux 3 roles (consultant, manager, people_manager).
+    if current_user.role not in ("consultant", "manager", "people_manager"):
+        raise HTTPException(status_code=403, detail="Acces refuse")
+
+    result = recommend_docks_service(
+        db=db,
+        packaging_code=payload.packaging_code.strip(),
+        quantity=payload.quantity,
+        seller_cofor=payload.seller_cofor.strip(),
+        empty_return_cofor=payload.empty_return_cofor.strip(),
+    )
+
+    # Si erreur metier (fournisseur introuvable, pas de stock, etc.)
+    # on retourne quand meme un 200 avec error/message remplis (le frontend gere)
+    if result.get("error"):
+        return {
+            "supplier": None,
+            "packaging_code": payload.packaging_code,
+            "quantity": payload.quantity,
+            "mode": "error",
+            "candidates_count": 0,
+            "primary": None,
+            "alternatives": [],
+            "summary": "",
+            "model_used": "",
+            "error": result["error"],
+            "message": result.get("message", ""),
+        }
+
     return result

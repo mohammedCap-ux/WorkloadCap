@@ -57,3 +57,47 @@ class ConfirmResponse(BaseModel):
     """Reponse de POST /api/agent/confirm-assignments"""
     created_assignments: list[AssignmentDetail]
     errors: list[str] = []
+
+# ============================================================
+#   POST /api/agent/recommend-docks - Phase 8.6b
+# ============================================================
+
+class RecommendDocksRequest(BaseModel):
+    packaging_code: str = Field(..., description="Code packaging (ex: R3147)")
+    quantity: float = Field(..., gt=0, description="Quantite besoin")
+    seller_cofor: str = Field(..., min_length=1)
+    empty_return_cofor: str = Field(..., min_length=1)
+
+
+class DockSplit(BaseModel):
+    dock_name: str
+    qty: float
+    percent: float
+
+
+class DockPlan(BaseModel):
+    plan_label: str
+    splits: list[DockSplit]
+    reasoning: str
+
+
+class SupplierBrief(BaseModel):
+    name: str | None = None
+    city: str | None = None
+    country: str | None = None
+    seller_cofor: str | None = None
+    empty_return_cofor: str | None = None
+
+
+class RecommendDocksResponse(BaseModel):
+    supplier: SupplierBrief | None = None
+    packaging_code: str = ""
+    quantity: float = 0
+    mode: str = "supplier_chain"   # "supplier_chain" ou "fallback_geographic"
+    candidates_count: int = 0
+    primary: DockPlan | None = None
+    alternatives: list[DockPlan] = []
+    summary: str = ""
+    model_used: str = ""
+    error: str | None = None
+    message: str | None = None
