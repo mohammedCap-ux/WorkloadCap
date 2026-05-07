@@ -92,3 +92,21 @@ class GeoDataResponse(BaseModel):
     suppliers: list[GeoSupplierItem]
     docks: list[GeoDockItem]
     availability: list[GeoAvailabilityItem]
+
+# ============================================================
+#   POST /api/geo/upload-stock - Phase 8.6a
+# ============================================================
+
+class StockUploadResponse(BaseModel):
+    inserted: int
+    total_rows: int
+    skipped_no_container: int
+    skipped_grand_total: int
+    skipped_no_packaging: int
+    skipped_no_stock: int
+    message: str
+
+
+class StockSummaryResponse(BaseModel):
+    total: int
+    uploaded_at: str | None = None

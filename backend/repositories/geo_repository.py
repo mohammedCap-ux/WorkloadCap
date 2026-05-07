@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from models import GeoSupplier, GeoDock, GeoAvailability
+from models import GeoSupplier, GeoDock, GeoAvailability, GeoStock
 
 
 def get_all_data(db: Session) -> dict:
@@ -101,4 +101,67 @@ def _availability_to_dict(a: GeoAvailability) -> dict:
         "packaging_id": a.packaging_id,
         "pooling_dock": a.pooling_dock,
         "alternates": a.alternates or [],
+    }
+
+# ============================================================
+#   STOCK FUNCTIONS - Phase 8.6
+# ============================================================
+
+def save_stock_batch(db: Session, entries: list[dict]) -> int:
+    """
+    Vide la table geo_stock puis inserte les nouvelles entrees.
+    
+    entries: list of {dock_name, packaging_code, qty_available, cu}
+    Retourne le nombre d'entrees inserees.
+    """
+    # Reset complet (re-runnable chaque semaine)
+    db.query(GeoStock).delete()
+    db.commit()
+
+    # Insert en batch
+    objs = [
+        GeoStock(
+            dock_name=e["dock_name"],
+            packaging_code=e["packaging_code"],
+            qty_available=e["qty_available"],
+            cu=e.get("cu"),
+        )
+        for e in entries
+    ]
+    db.bulk_save_objects(objs)
+    db.commit()
+    return len(objs)
+
+
+def get_stock_for_packaging(db: Session, packaging_code: str) -> list[dict]:
+    """
+    Retourne tous les docks ayant ce packaging avec leur qty disponible.
+    Tri par qty descendant (les + remplis en 1er).
+    """
+    rows = (
+        db.query(GeoStock)
+        .filter(GeoStock.packaging_code == packaging_code)
+        .order_by(GeoStock.qty_available.desc())
+        .all()
+    )
+    return [
+        {
+            "dock_name": r.dock_name,
+            "packaging_code": r.packaging_code,
+            "qty_available": r.qty_available,
+            "cu": r.cu,
+        }
+        for r in rows
+    ]
+
+
+def get_stock_summary(db: Session) -> dict:
+    """Retourne un resume pour debug : nombre d'entrees, derniere upload, etc."""
+    total = db.query(GeoStock).count()
+    if total == 0:
+        return {"total": 0, "uploaded_at": None}
+    last = db.query(GeoStock).order_by(GeoStock.uploaded_at.desc()).first()
+    return {
+        "total": total,
+        "uploaded_at": last.uploaded_at.isoformat() if last and last.uploaded_at else None,
     }

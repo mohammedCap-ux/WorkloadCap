@@ -10,12 +10,12 @@ POST /api/geo/closest-docks : top 5 docks les plus proches d'un fournisseur,
 import json
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User
-from schemas.geo import ClosestDocksRequest, ClosestDocksResponse, GeoDataResponse
+from schemas.geo import ClosestDocksRequest, ClosestDocksResponse, GeoDataResponse, StockUploadResponse, StockSummaryResponse
 from services.deps import get_current_user
 from repositories import geo_repository
 from services.geo_service import find_closest_docks
@@ -156,3 +156,57 @@ def get_geo_data(
     if current_user.role not in ("consultant", "manager", "people_manager"):
         raise HTTPException(status_code=403, detail="Acces refuse")
     return geo_repository.get_all_data(db)
+
+@router.post("/upload-stock", response_model=StockUploadResponse)
+async def upload_stock(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Upload du fichier de stock client (xlsx) - hebdomadaire.
+    # Reset complet de la table geo_stock + insertion des nouvelles entrees.
+    if current_user.role not in ("consultant", "manager", "people_manager"):
+        raise HTTPException(status_code=403, detail="Acces refuse")
+
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="Le fichier doit etre un .xlsx ou .xls")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50 MB)")
+
+    # Parse
+    from services.geo_stock_service import parse_stock_xlsx
+    try:
+        entries, stats = parse_stock_xlsx(file_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Erreur de format : {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de parsing : {str(e)}")
+
+    if not entries:
+        raise HTTPException(status_code=400, detail="Aucune entree valide trouvee dans le fichier")
+
+    # Save batch
+    inserted = geo_repository.save_stock_batch(db, entries)
+
+    return {
+        "inserted": inserted,
+        "total_rows": stats["total_rows"],
+        "skipped_no_container": stats["skipped_no_container"],
+        "skipped_grand_total": stats["skipped_grand_total"],
+        "skipped_no_packaging": stats["skipped_no_packaging"],
+        "skipped_no_stock": stats["skipped_no_stock"],
+        "message": f"{inserted} entrees stock importees avec succes",
+    }
+
+
+@router.get("/stock-summary", response_model=StockSummaryResponse)
+def get_stock_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Resume du stock charge (nombre + date upload).
+    if current_user.role not in ("consultant", "manager", "people_manager"):
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    return geo_repository.get_stock_summary(db)
