@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -6,7 +7,11 @@ import bcrypt
 from jose import jwt, JWTError
 
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-only-change-me")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    JWT_SECRET_KEY = secrets.token_hex(32)
+    print("[WARNING] JWT_SECRET_KEY non definie en env. Cle aleatoire generee pour cette session.")
+    print("[WARNING] Toutes les sessions actuelles seront invalidees au prochain redemarrage.")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "480"))
 
