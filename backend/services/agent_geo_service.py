@@ -237,18 +237,36 @@ Genere la repartition optimale en respectant les regles metier. Retourne UNIQUEM
     }
 
 
+# Stop words pour le matching de docks : tokens generiques presents dans tous les noms
+STOP_WORDS_DOCKS = {"csc", "dock", "wh", "whs", "platform", "wsh"}
+
+
 def _docks_match(name1: str, name2: str) -> bool:
-    """Match tolerant entre 2 noms de docks (ex: 'CSC TRNAVA -DOCK 4M1 ' et '4M1M - CSC TRNAVA -DOCK 4M1')."""
+    """Match tolerant entre 2 noms de docks.
+    
+    Matching base sur les tokens DISCRIMINANTS (ville, code unique) apres
+    retrait des stop words generiques (csc, dock, wh, etc).
+    
+    Exemples :
+    - 'CSC TRNAVA -DOCK 4M1 ' et '4M1M - CSC TRNAVA -DOCK 4M1' -> MATCH (trnava, 4m1)
+    - 'CSC MADRID -DOCK CAR' et 'CSC VALENCIENNES -DOCK FM2' -> NO MATCH (pas de token commun)
+    - 'Rennes' et 'CSC RENNES -DOCK JFV' -> MATCH (rennes)
+    """
     n1 = name1.strip().lower()
     n2 = name2.strip().lower()
     if n1 == n2:
         return True
-    tokens1 = set(t for t in re.split(r"[\s\-_]+", n1) if len(t) > 2)
-    tokens2 = set(t for t in re.split(r"[\s\-_]+", n2) if len(t) > 2)
+    # Tokens > 2 chars
+    tokens1_all = set(t for t in re.split(r"[\s\-_]+", n1) if len(t) > 2)
+    tokens2_all = set(t for t in re.split(r"[\s\-_]+", n2) if len(t) > 2)
+    # Retirer les stop words pour ne garder que les tokens discriminants
+    tokens1 = tokens1_all - STOP_WORDS_DOCKS
+    tokens2 = tokens2_all - STOP_WORDS_DOCKS
     if not tokens1 or not tokens2:
         return False
     common = tokens1 & tokens2
-    return len(common) >= min(2, min(len(tokens1), len(tokens2)))
+    # Au moins 1 token discriminant commun (ville ou code unique)
+    return len(common) >= 1
 
 
 def _fallback_plan(supplier, candidates, quantity, mode, error_msg):
