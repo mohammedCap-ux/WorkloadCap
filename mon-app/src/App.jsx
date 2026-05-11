@@ -1828,9 +1828,9 @@ const stdD = Object.entries(byCat).slice(0,5).map(([name,v])=>({name:name.substr
 
             const declData = JSON.parse(localStorage.getItem('workload_declarations') || '[]');
             const chargeParCos = {};
-            allVisibleCos.forEach(c => { chargeParCos[c.n] = c.s * 8; });
+            allVisibleCos.forEach(c => { chargeParCos[c.n] = 0; });
             declData.forEach(d => { if(chargeParCos[d.Consultant]!==undefined) chargeParCos[d.Consultant]+=(d['Duree Consacree (min)']||d['Duree Reelle (min)']||d['Duree Standard (min)']||0); });
-            affectations.forEach(a => { if(chargeParCos[a.cos]!==undefined) chargeParCos[a.cos]+=8; });
+            // [demo] Les affectations ne comptent plus comme charge : seules les declarations workload comptent
             const cosSorted = [...allVisibleCos].sort((a,b)=>(chargeParCos[a.n]||0)-(chargeParCos[b.n]||0));
             const selectLisible = {...S.select,background:'#ffffff',color:'#0070AD',fontSize:13,fontWeight:600,border:'1px solid rgba(0,196,240,0.3)'};
 
